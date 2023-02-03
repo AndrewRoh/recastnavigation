@@ -281,7 +281,7 @@ void Sample_TileMesh::handleSettings()
 	if (imguiButton("Load"))
 	{
 		dtFreeNavMesh(m_navMesh);
-		m_navMesh = Sample::loadAll("all_tiles_navmesh.bin");
+		m_navMesh = Sample::loadAll("NAVIMESH_GASTest.bin");
 		m_navQuery->init(m_navMesh, 2048);
 	}
 

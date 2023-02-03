@@ -25,7 +25,7 @@
 // Undefine (or define in a build cofnig) the following line to use 64bit polyref.
 // Generally not needed, useful for very large worlds.
 // Note: tiles build using 32bit refs are not compatible with 64bit refs!
-//#define DT_POLYREF64 1
+#define DT_POLYREF64 1
 
 #ifdef DT_POLYREF64
 // TODO: figure out a multiplatform version of uint64_t
@@ -190,8 +190,8 @@ struct dtPoly
 /// Defines the location of detail sub-mesh data within a dtMeshTile.
 struct dtPolyDetail
 {
-	unsigned int vertBase;			///< The offset of the vertices in the dtMeshTile::detailVerts array.
-	unsigned int triBase;			///< The offset of the triangles in the dtMeshTile::detailTris array.
+	unsigned short vertBase;			///< The offset of the vertices in the dtMeshTile::detailVerts array.
+	unsigned short triBase;			///< The offset of the triangles in the dtMeshTile::detailTris array.
 	unsigned char vertCount;		///< The number of vertices in the sub-mesh.
 	unsigned char triCount;			///< The number of triangles in the sub-mesh.
 };
@@ -227,53 +227,97 @@ struct dtOffMeshConnection
 	double pos[6];
 
 	/// The radius of the endpoints. [Limit: >= 0]
-	double rad;		
+	double rad;
+
+    /// The snap height of endpoints (less than 0 = use step height)
+    double height;
+
+    /// The id of the offmesh connection. (User assigned when the navigation mesh is built.)
+    unsigned int userId;
 
 	/// The polygon reference of the connection within the tile.
 	unsigned short poly;
 
-	/// Link flags. 
+    /// End point side.
+    unsigned char side;
+
+	/// Link flags.
 	/// @note These are not the connection's user defined flags. Those are assigned via the 
 	/// connection's dtPoly definition. These are link flags used for internal purposes.
 	unsigned char flags;
-
-	/// End point side.
-	unsigned char side;
-
-	/// The id of the offmesh connection. (User assigned when the navigation mesh is built.)
-	unsigned int userId;
 };
 
 /// Provides high level information related to a dtMeshTile object.
 /// @ingroup detour
 struct dtMeshHeader
 {
-	int magic;				///< Tile magic number. (Used to identify the data format.)
-	int version;			///< Tile data format version number.
-	int x;					///< The x-position of the tile within the dtNavMesh tile grid. (x, y, layer)
-	int y;					///< The y-position of the tile within the dtNavMesh tile grid. (x, y, layer)
-	int layer;				///< The layer of the tile within the dtNavMesh tile grid. (x, y, layer)
+    int magic;				///< Tile magic number. (Used to identify the data format.)
+    int version;			///< Tile data format version number.
+    int x;					///< The x-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+    int y;					///< The y-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+    int layer;				///< The layer of the tile within the dtNavMesh tile grid. (x, y, layer)
+    unsigned int userId;	///< The user defined id of the tile.
+    int polyCount;			///< The number of polygons in the tile.
+    int vertCount;			///< The number of vertices in the tile.
+    int maxLinkCount;		///< The number of allocated links.
+    int detailMeshCount;	///< The number of sub-meshes in the detail mesh.
+
+    /// The number of unique vertices in the detail mesh. (In addition to the polygon vertices.)
+    int detailVertCount;
+
+    int detailTriCount;			///< The number of triangles in the detail mesh.
+    int bvNodeCount;			///< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
+    int offMeshConCount;		///< The number of off-mesh connections.
+    int offMeshBase;			///< The index of the first polygon which is an off-mesh connection.
+    double walkableHeight;		///< The height of the agents using the tile.
+    double walkableRadius;		///< The radius of the agents using the tile.
+    double walkableClimb;		///< The maximum climb height of the agents using the tile.
+    double bmin[3];				///< The minimum bounds of the tile's AABB. [(x, y, z)]
+    double bmax[3];				///< The maximum bounds of the tile's AABB. [(x, y, z)]
+
+    /// The bounding volume quantization factor.
+    double bvQuantFactor;
+};
+
+struct dtMeshHeaderUE
+{
+    unsigned short version;			///< Tile data format version number.
+    unsigned short layer;				///< The layer of the tile within the dtNavMesh tile grid. (x, y, layer)
+
+    unsigned short polyCount;			///< The number of polygons in the tile.
+    unsigned short vertCount;			///< The number of vertices in the tile.
+
+    int x;					///< The x-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+    int y;					///< The y-position of the tile within the dtNavMesh tile grid. (x, y, layer)
+
+    unsigned short maxLinkCount;		///< The number of allocated links.
+    unsigned short detailMeshCount;	///< The number of sub-meshes in the detail mesh.
+
+    /// The number of unique vertices in the detail mesh. (In addition to the polygon vertices.)
+    unsigned short detailVertCount;
+
+    int magic;				///< Tile magic number. (Used to identify the data format.)
 	unsigned int userId;	///< The user defined id of the tile.
-	int polyCount;			///< The number of polygons in the tile.
-	int vertCount;			///< The number of vertices in the tile.
-	int maxLinkCount;		///< The number of allocated links.
-	int detailMeshCount;	///< The number of sub-meshes in the detail mesh.
-	
-	/// The number of unique vertices in the detail mesh. (In addition to the polygon vertices.)
-	int detailVertCount;
-	
-	int detailTriCount;			///< The number of triangles in the detail mesh.
-	int bvNodeCount;			///< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
-	int offMeshConCount;		///< The number of off-mesh connections.
-	int offMeshBase;			///< The index of the first polygon which is an off-mesh connection.
-	double walkableHeight;		///< The height of the agents using the tile.
-	double walkableRadius;		///< The radius of the agents using the tile.
-	double walkableClimb;		///< The maximum climb height of the agents using the tile.
+
+    unsigned short detailTriCount;		///< The number of triangles in the detail mesh.
+    unsigned short bvNodeCount;			///< The number of bounding volume nodes. (Zero if bounding volumes are disabled.)
+    unsigned short offMeshConCount;		///< The number of point type off-mesh connections.
+    unsigned short offMeshBase;			///< The index of the first polygon which is an point type off-mesh connection.
+
+    //@UE BEGIN
+#if 1   // WITH_NAVMESH_SEGMENT_LINKS
+    unsigned short offMeshSegConCount;	///< The number of segment type off-mesh connections.
+	unsigned short offMeshSegPolyBase;	///< The index of the first polygon which is an segment type off-mesh connection
+	unsigned short offMeshSegVertBase;	///< The index of the first vertex used by segment type off-mesh connection
+#endif // WITH_NAVMESH_SEGMENT_LINKS
+
+#if 1   // WITH_NAVMESH_CLUSTER_LINKS
+    unsigned short clusterCount;			///< Number of clusters
+#endif // WITH_NAVMESH_CLUSTER_LINKS
+    //@UE END
+
 	double bmin[3];				///< The minimum bounds of the tile's AABB. [(x, y, z)]
 	double bmax[3];				///< The maximum bounds of the tile's AABB. [(x, y, z)]
-	
-	/// The bounding volume quantization factor. 
-	double bvQuantFactor;
 };
 
 /// Defines a navigation mesh tile.
@@ -305,10 +349,11 @@ struct dtMeshTile
 	unsigned char* data;					///< The tile data. (Not directly accessed under normal situations.)
 	int dataSize;							///< Size of the tile data.
 	int flags;								///< Tile flags. (See: #dtTileFlags)
-	dtMeshTile* next;						///< The next free tile, or the next tile in the spatial grid.
+	dtMeshTile* next;						///< The next free tile, or the next tile in the spatial grid.identify tiles and polygons uniquely.
+	int maxPolys;					///< The maximum number of polygons each tile can contain. This and maxTiles are used to calculate how many bits are needed to identify tiles and polygons uniquely.
 private:
-	dtMeshTile(const dtMeshTile&);
-	dtMeshTile& operator=(const dtMeshTile&);
+    dtMeshTile(const dtMeshTile&);
+    dtMeshTile& operator=(const dtMeshTile&);
 };
 
 /// Get flags for edge in detail triangle.
@@ -317,7 +362,7 @@ private:
 ///								returns flags for edge AB.
 inline int dtGetDetailTriEdgeFlags(unsigned char triFlags, int edgeIndex)
 {
-	return (triFlags >> (edgeIndex * 2)) & 0x3;
+    return (triFlags >> (edgeIndex * 2)) & 0x3;
 }
 
 /// Configuration parameters used to define multi-tile navigation meshes.
@@ -326,11 +371,18 @@ inline int dtGetDetailTriEdgeFlags(unsigned char triFlags, int edgeIndex)
 /// @ingroup detour
 struct dtNavMeshParams
 {
-	double orig[3];					///< The world space origin of the navigation mesh's tile space. [(x, y, z)]
-	double tileWidth;				///< The width of each tile. (Along the x-axis.)
-	double tileHeight;				///< The height of each tile. (Along the z-axis.)
-	int maxTiles;					///< The maximum number of tiles the navigation mesh can contain. This and maxPolys are used to calculate how many bits are needed to identify tiles and polygons uniquely.
-	int maxPolys;					///< The maximum number of polygons each tile can contain. This and maxTiles are used to calculate how many bits are needed to identify tiles and polygons uniquely.
+    //@UE BEGIN Memory optimization
+    double walkableHeight;			///< The height of the agents using the tile.
+    double walkableRadius;			///< The radius of the agents using the tile.
+    double walkableClimb;			///< The maximum climb height of the agents using the tile.
+    double bvQuantFactor;			///< The bounding volume quantization factor.
+    //@UE END Memory optimization
+
+    double orig[3];					///< The world space origin of the navigation mesh's tile space. [(x, y, z)]
+    double tileWidth;				///< The width of each tile. (Along the x-axis.)
+    double tileHeight;				///< The height of each tile. (Along the z-axis.)
+    int maxTiles;					///< The maximum number of tiles the navigation mesh can contain. This and maxPolys are used to calculate how many bits are needed to identify tiles and polygons uniquely.
+    int maxPolys;					///< The maximum number of polygons each tile can contain. This and maxTiles are used to calculate how many bits are needed to identify tiles and polygons uniquely.
 };
 
 /// A navigation mesh based on tiles of convex polygons.

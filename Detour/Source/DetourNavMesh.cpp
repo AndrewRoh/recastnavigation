@@ -910,10 +910,32 @@ int dtNavMesh::queryPolygonsInTile(const dtMeshTile* tile, const double* qmin, c
 dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 							dtTileRef lastRef, dtTileRef* result)
 {
-	// Make sure the data is in right format.
-	dtMeshHeader* header = (dtMeshHeader*)data;
-	if (header->magic != DT_NAVMESH_MAGIC)
-		return DT_FAILURE | DT_WRONG_MAGIC;
+    dtMeshHeaderUE* headerUe = (dtMeshHeaderUE*)data;
+
+    dtMeshHeader* header = new dtMeshHeader; // = (dtMeshHeader*)data;
+    header->magic = headerUe->magic;
+    header->version = headerUe->version;
+    header->x = headerUe->x;
+    header->y = headerUe->y;
+    header->layer = headerUe->layer;
+    header->userId = headerUe->userId;
+
+    header->polyCount = headerUe->polyCount;
+    header->vertCount = headerUe->vertCount;
+    header->maxLinkCount = headerUe->maxLinkCount;
+    header->detailMeshCount = headerUe->detailMeshCount;
+    header->detailVertCount = headerUe->detailVertCount;
+    header->detailTriCount = headerUe->detailTriCount;
+    header->bvNodeCount = headerUe->bvNodeCount;
+    header->offMeshConCount = headerUe->offMeshConCount;
+    header->offMeshBase = headerUe->offMeshBase;
+    for(int n=0; n<3; n++) {
+        header->bmin[n] = headerUe->bmin[n];
+        header->bmax[n] = headerUe->bmax[n];
+    }
+
+//	if (header->magic != DT_NAVMESH_MAGIC)
+//		return DT_FAILURE | DT_WRONG_MAGIC;
 	if (header->version != DT_NAVMESH_VERSION)
 		return DT_FAILURE | DT_WRONG_VERSION;
 
